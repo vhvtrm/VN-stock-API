@@ -178,6 +178,15 @@ if __name__ == '__main__':
     print("="*60)
     print("\n⚠️  Using REAL DATABASE (DClab)")
     print("📦 Driver: pymssql (no ODBC required)")
+
+    # Check environment variable
+    print("\n🔍 Checking environment...")
+    if os.getenv('DC_DB_STRING'):
+        print("✅ DC_DB_STRING is set")
+    else:
+        print("❌ DC_DB_STRING is NOT set!")
+        print("⚠️  App will crash on first database request")
+
     print("\nAvailable Endpoints:")
     print("  GET  /api/health")
     print("  GET  /api/stock/<symbol>")
@@ -188,4 +197,10 @@ if __name__ == '__main__':
     print("Press Ctrl+C to stop")
     print("="*60 + "\n")
 
-    app.run(host='0.0.0.0', port=port, debug=False)
+    try:
+        app.run(host='0.0.0.0', port=port, debug=False)
+    except Exception as e:
+        print(f"\n❌ Server failed to start: {e}")
+        import traceback
+        traceback.print_exc()
+        raise
