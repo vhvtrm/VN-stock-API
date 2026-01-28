@@ -11,12 +11,20 @@ class StockPriceFetcher:
     """Fetch stock prices from DClab database using pymssql"""
 
     def __init__(self):
-        """Initialize with database connection"""
-        self.conn = get_connection()
+        """Initialize - connection created per request"""
+        self.conn = None
+
+    def _get_connection(self):
+        """Get or create database connection"""
+        if self.conn is None:
+            self.conn = get_connection()
+        return self.conn
 
     def get_latest_price(self, symbol):
         """Get the most recent price for a stock"""
-        cursor = self.conn.cursor(as_dict=True)
+        try:
+            conn = get_connection()  # Fresh connection for each request
+            cursor = conn.cursor(as_dict=True)
 
         query = """
         SELECT TOP 1
@@ -32,11 +40,12 @@ class StockPriceFetcher:
         ORDER BY TRADE_DATE DESC
         """
 
-        cursor.execute(query, (symbol,))
-        row = cursor.fetchone()
-        cursor.close()
+            cursor.execute(query, (symbol,))
+            row = cursor.fetchone()
+            cursor.close()
+            conn.close()
 
-        if row:
+            if row:
             # Calculate change (compared to open)
             change = row['close_price'] - row['open_price']
             pct_change = (change / row['open_price'] * 100) if row['open_price'] else 0
@@ -59,9 +68,13 @@ class StockPriceFetcher:
                 'change_amount': float(change),
                 'pct_change': round(pct_change, 2),
                 'change_percent': round(pct_change, 2)
-            }
+                }
 
-        return None
+            return None
+        except Exception as e:
+            # Log error and return None
+            print(f"Error fetching price for {symbol}: {e}")
+            return None
 
     def get_multiple_prices(self, symbols):
         """Get prices for multiple stocks"""
@@ -72,7 +85,9 @@ class StockPriceFetcher:
 
     def get_price_history(self, symbol, days=30):
         """Get historical prices for a stock"""
-        cursor = self.conn.cursor(as_dict=True)
+        try:
+            conn = get_connection()  # Fresh connection
+            cursor = conn.cursor(as_dict=True)
 
         query = """
         SELECT TOP (%s)
@@ -88,11 +103,12 @@ class StockPriceFetcher:
         ORDER BY TRADE_DATE DESC
         """
 
-        cursor.execute(query, (days, symbol))
-        rows = cursor.fetchall()
-        cursor.close()
+            cursor.execute(query, (days, symbol))
+            rows = cursor.fetchall()
+            cursor.close()
+            conn.close()
 
-        results = []
+            results = []
         for row in rows:
             change = row['close_price'] - row['open_price']
             pct_change = (change / row['open_price'] * 100) if row['open_price'] else 0
@@ -109,9 +125,12 @@ class StockPriceFetcher:
                 'trade_date': row['TRADE_DATE'].strftime('%Y-%m-%d'),
                 'change': float(change),
                 'pct_change': round(pct_change, 2)
-            })
+                })
 
-        return results
+            return results
+        except Exception as e:
+            print(f"Error fetching history for {symbol}: {e}")
+            return []
 
     def close(self):
         """Close database connection"""
