@@ -8,6 +8,7 @@ from flask_cors import CORS
 from get_stock_prices_simple import StockPriceFetcher
 from datetime import datetime
 import traceback
+import os
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for Google AI Studio to access
@@ -200,6 +201,9 @@ def internal_error(error):
 # --------------------------------------------------------------------------------
 
 if __name__ == '__main__':
+    # Get port from environment variable (Railway) or default to 5001
+    port = int(os.environ.get('PORT', 5001))
+
     print("="*60)
     print("Vietnamese Stock Price API Server - REAL DATA")
     print("="*60)
@@ -210,8 +214,8 @@ if __name__ == '__main__':
     print("  POST /api/stocks")
     print("  GET  /api/stock/<symbol>/history?days=30")
     print("\n" + "="*60)
-    print("\nStarting server on http://localhost:5001")
+    print(f"\nStarting server on http://0.0.0.0:{port}")
     print("Press Ctrl+C to stop")
     print("="*60 + "\n")
 
-    app.run(host='0.0.0.0', port=5001, debug=False)
+    app.run(host='0.0.0.0', port=port, debug=False)
