@@ -4,20 +4,10 @@ FROM python:3.11-slim
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies for ODBC and SQL Server
+# Install system dependencies for pymssql (FreeTDS)
 RUN apt-get update && apt-get install -y \
-    curl \
-    apt-transport-https \
-    gnupg \
-    unixodbc \
-    unixodbc-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install Microsoft ODBC Driver for SQL Server
-RUN curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add - \
-    && curl https://packages.microsoft.com/config/debian/11/prod.list > /etc/apt/sources.list.d/mssql-release.list \
-    && apt-get update \
-    && ACCEPT_EULA=Y apt-get install -y msodbcsql18 \
+    freetds-dev \
+    freetds-bin \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements and install Python dependencies
@@ -30,5 +20,5 @@ COPY . .
 # Expose port (Railway will set PORT env variable)
 EXPOSE 8080
 
-# Run the application
-CMD ["python", "api_server_real.py"]
+# Run the pymssql version of the API
+CMD ["python", "api_server_pymssql.py"]
