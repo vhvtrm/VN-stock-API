@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vietnamese Stock Market AI Assistant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .input-group input,
+        .input-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        .input-group input:focus,
+        .input-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .results {
+            grid-column: 1 / -1;
+        }
+
+        .stock-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+
+        .stock-card h3 {
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+        }
+
+        .stock-price {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .stock-change {
+            font-size: 1.2rem;
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .stock-change.positive {
+            background: rgba(76, 175, 80, 0.3);
+        }
+
+        .stock-change.negative {
+            background: rgba(244, 67, 54, 0.3);
+        }
+
+        .stock-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .detail-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        .detail-label {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            margin-bottom: 5px;
+        }
+
+        .detail-value {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .error {
+            background: #f44336;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #667eea;
+            font-size: 1.2rem;
+        }
+
+        .api-status {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            margin-left: 10px;
+        }
+
+        .api-status.online {
+            background: #4caf50;
+            color: white;
+        }
+
+        .api-status.offline {
+            background: #f44336;
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Vietnamese Stock Market</h1>
+            <p>Real-time stock prices from DClab Database <span id="apiStatus" class="api-status">Checking...</span></p>
+        </div>
+
+        <div class="main-content">
+            <!-- Single Stock Query -->
+            <div class="card">
+                <h2>Get Stock Price</h2>
+                <div class="input-group">
+                    <label>Stock Symbol</label>
+                    <input type="text" id="singleSymbol" placeholder="e.g., VNM" value="VNM">
+                </div>
+                <button onclick="getSingleStock()">Get Price</button>
+            </div>
+
+            <!-- Multiple Stocks Query -->
+            <div class="card">
+                <h2>Get Multiple Stocks</h2>
+                <div class="input-group">
+                    <label>Stock Symbols (comma-separated)</label>
+                    <input type="text" id="multipleSymbols" placeholder="e.g., VNM, VIC, VHM" value="VNM, VIC, VHM">
+                </div>
+                <button onclick="getMultipleStocks()">Get Prices</button>
+            </div>
+
+            <!-- Price History -->
+            <div class="card">
+                <h2>Price History</h2>
+                <div class="input-group">
+                    <label>Stock Symbol</label>
+                    <input type="text" id="historySymbol" placeholder="e.g., VNM" value="VNM">
+                </div>
+                <div class="input-group">
+                    <label>Days</label>
+                    <select id="historyDays">
+                        <option value="7">7 days</option>
+                        <option value="30" selected>30 days</option>
+                        <option value="90">90 days</option>
+                    </select>
+                </div>
+                <button onclick="getHistory()">Get History</button>
+            </div>
+
+            <!-- Market Summary -->
+            <div class="card">
+                <h2>Market Summary</h2>
+                <div class="input-group">
+                    <label>Market</label>
+                    <select id="marketSelect">
+                        <option value="HOSE">HOSE</option>
+                        <option value="HNX">HNX</option>
+                        <option value="UPCOM">UPCOM</option>
+                    </select>
+                </div>
+                <button onclick="getMarketSummary()">Get Summary</button>
+            </div>
+
+            <!-- Results -->
+            <div class="card results">
+                <h2>Results</h2>
+                <div id="results">
+                    <p style="color: #999;">Select an option above to get stock data</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:5001/api';
+
+        // Check API health on load
+        checkAPIHealth();
+
+        async function checkAPIHealth() {
+            const statusEl = document.getElementById('apiStatus');
+            try {
+                const response = await fetch(`${API_BASE_URL}/health`);
+                const data = await response.json();
+                if (data.status === 'ok') {
+                    statusEl.textContent = 'API Online';
+                    statusEl.className = 'api-status online';
+                } else {
+                    throw new Error('API not healthy');
+                }
+            } catch (error) {
+                statusEl.textContent = 'API Offline';
+                statusEl.className = 'api-status offline';
+            }
+        }
+
+        async function getSingleStock() {
+            const symbol = document.getElementById('singleSymbol').value.trim().toUpperCase();
+            if (!symbol) {
+                showError('Please enter a stock symbol');
+                return;
+            }
+
+            showLoading();
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/stock/${symbol}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    displayStockCard(data.data);
+                } else {
+                    showError(data.error);
+                }
+            } catch (error) {
+                showError('Failed to fetch stock data: ' + error.message);
+            }
+        }
+
+        async function getMultipleStocks() {
+            const input = document.getElementById('multipleSymbols').value;
+            const symbols = input.split(',').map(s => s.trim().toUpperCase()).filter(s => s);
+
+            if (symbols.length === 0) {
+                showError('Please enter at least one stock symbol');
+                return;
+            }
+
+            showLoading();
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/stocks`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ symbols: symbols })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    let html = '';
+                    for (const [symbol, stockData] of Object.entries(data.data)) {
+                        if (stockData) {
+                            html += createStockCard(stockData);
+                        }
+                    }
+                    document.getElementById('results').innerHTML = html || '<p>No data found</p>';
+                } else {
+                    showError(data.error);
+                }
+            } catch (error) {
+                showError('Failed to fetch stocks: ' + error.message);
+            }
+        }
+
+        async function getHistory() {
+            const symbol = document.getElementById('historySymbol').value.trim().toUpperCase();
+            const days = document.getElementById('historyDays').value;
+
+            if (!symbol) {
+                showError('Please enter a stock symbol');
+                return;
+            }
+
+            showLoading();
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/stock/${symbol}/history?days=${days}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    displayHistory(symbol, data.data);
+                } else {
+                    showError(data.error);
+                }
+            } catch (error) {
+                showError('Failed to fetch history: ' + error.message);
+            }
+        }
+
+        async function getMarketSummary() {
+            const market = document.getElementById('marketSelect').value;
+            showLoading();
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/market/${market}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    displayMarketSummary(market, data.data);
+                } else {
+                    showError(data.error);
+                }
+            } catch (error) {
+                showError('Failed to fetch market summary: ' + error.message);
+            }
+        }
+
+        function displayStockCard(stock) {
+            document.getElementById('results').innerHTML = createStockCard(stock);
+        }
+
+        function createStockCard(stock) {
+            const changeClass = stock.change >= 0 ? 'positive' : 'negative';
+            const changeSign = stock.change >= 0 ? '+' : '';
+
+            return `
+                <div class="stock-card">
+                    <h3>${stock.symbol}</h3>
+                    <div class="stock-price">${stock.price.toLocaleString()} VND</div>
+                    <div class="stock-change ${changeClass}">
+                        ${changeSign}${stock.change.toFixed(2)} (${changeSign}${stock.pct_change.toFixed(2)}%)
+                    </div>
+                    <div class="stock-details">
+                        <div class="detail-item">
+                            <div class="detail-label">Open</div>
+                            <div class="detail-value">${stock.open.toLocaleString()}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">High</div>
+                            <div class="detail-value">${stock.high.toLocaleString()}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Low</div>
+                            <div class="detail-value">${stock.low.toLocaleString()}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Volume</div>
+                            <div class="detail-value">${stock.volume.toLocaleString()}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function displayHistory(symbol, history) {
+            let html = `<h3 style="margin-bottom: 15px;">${symbol} - Price History</h3>`;
+            html += '<table style="width: 100%; border-collapse: collapse;">';
+            html += '<thead><tr style="background: #667eea; color: white;"><th style="padding: 10px;">Date</th><th>Close</th><th>High</th><th>Low</th><th>Volume</th></tr></thead>';
+            html += '<tbody>';
+
+            history.forEach((item, index) => {
+                const bgColor = index % 2 === 0 ? '#f5f5f5' : 'white';
+                html += `
+                    <tr style="background: ${bgColor};">
+                        <td style="padding: 10px;">${item.trade_date}</td>
+                        <td style="padding: 10px;">${item.close_price.toLocaleString()}</td>
+                        <td style="padding: 10px;">${item.high_price.toLocaleString()}</td>
+                        <td style="padding: 10px;">${item.low_price.toLocaleString()}</td>
+                        <td style="padding: 10px;">${item.volume.toLocaleString()}</td>
+                    </tr>
+                `;
+            });
+
+            html += '</tbody></table>';
+            document.getElementById('results').innerHTML = html;
+        }
+
+        function displayMarketSummary(market, data) {
+            let html = `<h3 style="margin-bottom: 15px;">${market} Market Summary (${data.length} stocks)</h3>`;
+            html += '<div style="max-height: 500px; overflow-y: auto;">';
+
+            data.slice(0, 20).forEach(stock => {
+                html += createStockCard(stock);
+            });
+
+            html += '</div>';
+            document.getElementById('results').innerHTML = html;
+        }
+
+        function showLoading() {
+            document.getElementById('results').innerHTML = '<div class="loading">Loading...</div>';
+        }
+
+        function showError(message) {
+            document.getElementById('results').innerHTML = `<div class="error">❌ ${message}</div>`;
+        }
+    </script>
+</body>
+</html>
